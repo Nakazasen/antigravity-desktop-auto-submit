@@ -1,0 +1,189 @@
+"""
+Antigravity Desktop 2.0 Auto-Submit Daemon
+=========================================
+Tu dong phat hien va ket noi qua Chrome DevTools Protocol (CDP) cua Antigravity Desktop
+de tu dong nhan nut 'Submit ↵' / 'Allow' moi khi agent hoi quyen chay lenh.
+
+Tac gia: Nakazasen
+Repository: https://github.com/Nakazasen/antigravity-desktop-auto-submit
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import os
+import sys
+import time
+import urllib.request
+
+# Ensure UTF-8 output on Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+try:
+    import websockets
+except ImportError:
+    print("[LOI] Thieu thu vien 'websockets'. Vui long chay: pip install websockets")
+    sys.exit(1)
+
+PORT_FILE = os.path.expandvars(r"%APPDATA%\Antigravity\DevToolsActivePort")
+
+JS_PAYLOAD_TEMPLATE = """
+(() => {
+  if (window.__agAutoSubmitActive) return 'already_active';
+  window.__agAutoSubmitActive = true;
+
+  console.log('[Antigravity Auto-Submit] Daemon active and monitoring buttons...');
+
+  window.__agAutoSubmitTimer = setInterval(() => {
+    try {
+      const buttons = Array.from(document.querySelectorAll('button'));
+      
+      // 1. Tim nut Submit (uu tien cao nhat theo UI Antigravity 2.0 Desktop)
+      const submitBtn = buttons.find(b => {
+        const text = (b.innerText || b.textContent || '').trim().toLowerCase();
+        return (text === 'submit' || text.startsWith('submit') || text.includes('submit ↵')) &&
+               !b.disabled &&
+               b.offsetParent !== null;
+      });
+
+      if (submitBtn) {
+        console.log('[Antigravity Auto-Submit] Found Submit button. Clicking...');
+        submitBtn.focus();
+        submitBtn.click();
+        return;
+      }
+
+      // 2. Tim nut Allow neu co hop thoai truc tiep
+      const allowBtn = buttons.find(b => {
+        const text = (b.innerText || b.textContent || '').trim().toLowerCase();
+        return (text === 'allow' || text === 'allow this time' || text === 'yes, allow this time') &&
+               !b.disabled &&
+               b.offsetParent !== null;
+      });
+
+      if (allowBtn) {
+        console.log('[Antigravity Auto-Submit] Found Allow button. Clicking...');
+        allowBtn.focus();
+        allowBtn.click();
+      }
+    } catch (err) {
+      console.error('[Antigravity Auto-Submit] Error in timer:', err);
+    }
+  }, __CHECK_INTERVAL_MS__);
+
+  return 'injected_successfully';
+})()
+"""
+
+
+def get_active_port() -> str | None:
+    """Doc cong active DevTools tu file cua Antigravity."""
+    if not os.path.exists(PORT_FILE):
+        return None
+    try:
+        with open(PORT_FILE, "r", encoding="utf-8") as f:
+            port = f.readline().strip()
+            return port if port.isdigit() else None
+    except Exception:
+        return None
+
+
+def get_target_pages(port: str) -> list[dict]:
+    """Lay danh sach cac tab / webview cua Antigravity Desktop dang mo."""
+    try:
+        url = f"http://127.0.0.1:{port}/json"
+        with urllib.request.urlopen(url, timeout=2) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return [p for p in data if p.get("type") == "page" and p.get("webSocketDebuggerUrl")]
+    except Exception:
+        return []
+
+
+async def inject_page(ws_url: str, check_interval_ms: int = 500) -> bool:
+    """Ket noi vao trang qua WebSocket CDP va inject doan ma Javascript tu dong bam nut."""
+    payload = JS_PAYLOAD_TEMPLATE.replace("__CHECK_INTERVAL_MS__", str(check_interval_ms))
+    try:
+        async with websockets.connect(ws_url, open_timeout=2) as ws:
+            # 1. Chay ngay tren trang hien tai
+            req_eval = {
+                "id": 1,
+                "method": "Runtime.evaluate",
+                "params": {"expression": payload, "returnByValue": True},
+            }
+            await ws.send(json.dumps(req_eval))
+            resp_eval = json.loads(await ws.recv())
+
+            # 2. Dang ky tu dong inject neu nguoi dung load lai trang hoac doi hoi thoai
+            req_preload = {
+                "id": 2,
+                "method": "Page.addScriptToEvaluateOnNewDocument",
+                "params": {"source": payload},
+            }
+            await ws.send(json.dumps(req_preload))
+            await ws.recv()
+
+            result_val = resp_eval.get("result", {}).get("result", {}).get("value")
+            return result_val in ("injected_successfully", "already_active")
+    except Exception:
+        return False
+
+
+async def main_loop(poll_interval: float = 2.0, check_interval_ms: int = 500):
+    print("===================================================================", flush=True)
+    print("      ANTIGRAVITY DESKTOP 2.0 - AUTO SUBMIT DAEMON (CDP)           ", flush=True)
+    print("===================================================================", flush=True)
+    print(f"[{time.strftime('%H:%M:%S')}] [KHOI DONG] Daemon dang chay...", flush=True)
+    print(f"[{time.strftime('%H:%M:%S')}] [THEO DOI] Dang theo doi: {PORT_FILE}", flush=True)
+    print(f"[{time.strftime('%H:%M:%S')}] [THIET LAP] Toc do quet nut: {check_interval_ms}ms, quet tien trinh: {poll_interval}s\n", flush=True)
+    
+    last_injected_port = None
+    injected_pages = set()
+
+    while True:
+        try:
+            port = get_active_port()
+            if not port:
+                await asyncio.sleep(poll_interval)
+                continue
+
+            if port != last_injected_port:
+                last_injected_port = port
+                injected_pages.clear()
+
+            pages = get_target_pages(port)
+            for p in pages:
+                page_id = p.get("id")
+                ws_url = p.get("webSocketDebuggerUrl")
+                if page_id and page_id not in injected_pages and ws_url:
+                    success = await inject_page(ws_url, check_interval_ms)
+                    if success:
+                        injected_pages.add(page_id)
+                        print(
+                            f"[{time.strftime('%H:%M:%S')}] [THANH CONG] Da kich hoat Auto-Submit cho Antigravity (Port: {port}, Page: {page_id[:8]})",
+                            flush=True,
+                        )
+        except Exception:
+            pass
+
+        await asyncio.sleep(poll_interval)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Antigravity Desktop 2.0 Auto-Submit Daemon")
+    parser.add_argument("--interval", type=float, default=2.0, help="Chu ky quet tien trinh / cong port (giay, mac dinh: 2.0)")
+    parser.add_argument("--button-check-ms", type=int, default=500, help="Chu ky tim nut Submit trong giao dien (ms, mac dinh: 500)")
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    try:
+        asyncio.run(main_loop(poll_interval=args.interval, check_interval_ms=args.button_check_ms))
+    except KeyboardInterrupt:
+        print("\n[Antigravity Auto-Submit Daemon] Da dung boi nguoi dung.")
+        sys.exit(0)
