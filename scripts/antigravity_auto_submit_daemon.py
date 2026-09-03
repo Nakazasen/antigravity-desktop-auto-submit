@@ -30,7 +30,13 @@ except ImportError:
     print("[LOI] Thieu thu vien 'websockets'. Vui long chay: pip install websockets")
     sys.exit(1)
 
-PORT_FILE = os.path.expandvars(r"%APPDATA%\Antigravity\DevToolsActivePort")
+PORT_FILES = [
+    os.path.expandvars(r"%APPDATA%\Antigravity\DevToolsActivePort"),
+    os.path.expandvars(r"%APPDATA%\Antigravity IDE\DevToolsActivePort"),
+    os.path.expandvars(r"%LOCALAPPDATA%\Antigravity\DevToolsActivePort"),
+    os.path.expandvars(r"%LOCALAPPDATA%\Antigravity IDE\DevToolsActivePort"),
+]
+PORT_FILE = PORT_FILES[0]
 
 JS_PAYLOAD_TEMPLATE = """
 (() => {
@@ -81,16 +87,29 @@ JS_PAYLOAD_TEMPLATE = """
 """
 
 
-def get_active_port() -> str | None:
-    """Doc cong active DevTools tu file cua Antigravity."""
-    if not os.path.exists(PORT_FILE):
-        return None
+def is_port_listening(port: int) -> bool:
+    """Kiem tra nhanh xem port co dang mo hay khong (tranh timeout khi file port cu)."""
+    import socket
     try:
-        with open(PORT_FILE, "r", encoding="utf-8") as f:
-            port = f.readline().strip()
-            return port if port.isdigit() else None
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.3)
+            return s.connect_ex(('127.0.0.1', int(port))) == 0
     except Exception:
-        return None
+        return False
+
+
+def get_active_port() -> str | None:
+    """Doc cong active DevTools tu file cua Antigravity hoac Antigravity IDE."""
+    for p_file in PORT_FILES:
+        if os.path.exists(p_file):
+            try:
+                with open(p_file, "r", encoding="utf-8") as f:
+                    port = f.readline().strip()
+                    if port.isdigit() and is_port_listening(int(port)):
+                        return port
+            except Exception:
+                continue
+    return None
 
 
 def get_target_pages(port: str) -> list[dict]:
