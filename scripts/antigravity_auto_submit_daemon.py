@@ -47,7 +47,16 @@ JS_PAYLOAD_TEMPLATE = """
 
   window.__agAutoSubmitTimer = setInterval(() => {
     try {
-      const buttons = Array.from(document.querySelectorAll('button'));
+      const getAllButtons = (root) => {
+        let btns = Array.from(root.querySelectorAll('button'));
+        root.querySelectorAll('iframe').forEach(frame => {
+          try {
+            if (frame.contentDocument) btns.push(...getAllButtons(frame.contentDocument));
+          } catch(e) {}
+        });
+        return btns;
+      };
+      const buttons = getAllButtons(document);
       
       // 1. Tim nut Submit (uu tien cao nhat theo UI Antigravity 2.0 Desktop)
       const submitBtn = buttons.find(b => {
@@ -99,7 +108,7 @@ def is_port_listening(port: int) -> bool:
 
 
 def get_active_port() -> str | None:
-    """Doc cong active DevTools tu file cua Antigravity hoac Antigravity IDE."""
+    """Doc cong active DevTools tu file cua Antigravity / Antigravity IDE hoac cong mac dinh 9222."""
     for p_file in PORT_FILES:
         if os.path.exists(p_file):
             try:
@@ -109,6 +118,12 @@ def get_active_port() -> str | None:
                         return port
             except Exception:
                 continue
+
+    # Quet cac cong remote debugging pho bien (khi mo Antigravity IDE voi --remote-debugging-port=9222)
+    for default_port in [9222, 9229, 9333]:
+        if is_port_listening(default_port):
+            return str(default_port)
+
     return None
 
 
@@ -118,7 +133,7 @@ def get_target_pages(port: str) -> list[dict]:
         url = f"http://127.0.0.1:{port}/json"
         with urllib.request.urlopen(url, timeout=2) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return [p for p in data if p.get("type") == "page" and p.get("webSocketDebuggerUrl")]
+            return [p for p in data if p.get("type") in ("page", "webview", "iframe") and p.get("webSocketDebuggerUrl")]
     except Exception:
         return []
 
