@@ -190,6 +190,8 @@ antigravity-desktop-auto-submit/
 └── launchers/
     ├── Auto_Submit_Antigravity.bat         # Interactive launcher with console output
     ├── Chay_Ngam_Auto_Submit.vbs           # Completely hidden background launcher
+    ├── Khoi_Dong_Antigravity_Desktop.bat   # Launch Antigravity Desktop with port 9222 & Auto-Submit
+    ├── Khoi_Dong_Antigravity_IDE.bat       # Launch Antigravity IDE with port 9222 & Auto-Submit
     └── Stop_Auto_Submit.bat                # Termination script for running daemons
 ```
 

@@ -190,6 +190,8 @@ antigravity-desktop-auto-submit/
 └── launchers/
     ├── Auto_Submit_Antigravity.bat         # Trình chạy tương tác (hiện log console)
     ├── Chay_Ngam_Auto_Submit.vbs           # Trình chạy ẩn 100% không hiện cửa sổ
+    ├── Khoi_Dong_Antigravity_Desktop.bat   # Khởi động Antigravity Desktop kèm port 9222 & Auto-Submit
+    ├── Khoi_Dong_Antigravity_IDE.bat       # Khởi động Antigravity IDE kèm port 9222 & Auto-Submit
     └── Stop_Auto_Submit.bat                # Trình dừng tiến trình daemon
 ```
 
