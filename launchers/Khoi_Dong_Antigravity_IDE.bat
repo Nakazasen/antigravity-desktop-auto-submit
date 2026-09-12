@@ -41,7 +41,7 @@ if %errorlevel% equ 0 (
 set "IDE_EXE=%LOCALAPPDATA%\Programs\Antigravity IDE\Antigravity IDE.exe"
 if exist "%IDE_EXE%" (
     echo [OK] Dang mo Antigravity IDE voi port 9222...
-    start "" "%IDE_EXE%" --remote-debugging-port=9222 %*
+    start "" "%IDE_EXE%" --remote-debugging-port=9222 --remote-allow-origins=* %*
 ) else (
     echo [LOI] Khong tim thay Antigravity IDE tai: "%IDE_EXE%"
     pause

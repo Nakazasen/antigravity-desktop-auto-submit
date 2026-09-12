@@ -197,6 +197,23 @@ antigravity-desktop-auto-submit/
 
 ---
 
+## 🔧 Antigravity IDE / Extension không bấm được Submit?
+
+**Nguyên nhân đã xác minh trên máy thật:**
+
+* **Antigravity Desktop 2.0** tự ghi cổng Chrome DevTools vào `%APPDATA%\Antigravity\DevToolsActivePort`. Daemon tiêm JavaScript qua CDP và bấm `Submit ↵` được.
+* **Antigravity IDE** (bản VS Code) **không** mở cổng CDP khi mở bình thường từ Start Menu / icon. Không có `DevToolsActivePort`, các cổng nội bộ trả 403/404, nên injector CDP **không vào được** webview của extension.
+* Hộp thoại *Allow testing cached font performance?* / *Allow generating…?* nằm trong **Antigravity 2.0 Extension** trên IDE. Nút thật trên cây hỗ trợ tiếp cận Windows là `Submit ↵` (kèm nút `Skip` và radio *Yes, allow this time*).
+
+**Cách daemon xử lý từ bản này:**
+
+1. Desktop: vẫn tiêm CDP, quét **mọi** cổng DevTools chứ không dừng ở cổng đầu tiên.
+2. IDE / extension: luồng UI Automation riêng, tìm cửa sổ *Antigravity IDE* rồi `Invoke` nút `Submit ↵`. Không cần khởi động lại IDE với `--remote-debugging-port`.
+
+Chạy lại `launchers\Auto_Submit_Antigravity.bat` (hoặc `Chay_Ngam_Auto_Submit.vbs`) sau khi cập nhật. Log sẽ có dòng `[UIA] Da bam Submit tren Antigravity IDE`.
+
+---
+
 ## ⚠️ Lưu Ý An Toàn (Safety Guidelines)
 
 * Khi bật chế độ tự động duyệt, mọi lệnh dòng lệnh do Agent sinh ra (`git`, biên dịch mã nguồn, kiểm tra tiến trình) sẽ được thực thi ngay lập tức mà không cần xác nhận thủ công.
