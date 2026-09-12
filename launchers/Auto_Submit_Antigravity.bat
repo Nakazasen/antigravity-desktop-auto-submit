@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
-title Antigravity 2.0 Desktop Auto-Submitter
+title Antigravity Auto-Submit
 cd /d "%~dp0\.."
 
 echo ========================================================
-echo   ANTIGRAVITY 2.0 DESKTOP - AUTO SUBMIT DAEMON
-echo   Tu dong duyet va nhan Submit/Allow cho Agent Desktop
+echo   ANTIGRAVITY AUTO-SUBMIT
+echo   Desktop 2.0 + IDE/extension: tu bam Submit/Allow
 echo ========================================================
 echo.
 

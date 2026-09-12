@@ -78,29 +78,21 @@ flowchart TD
 
 ---
 
-## 🚀 How to Run
+## 🚀 How to Run (Desktop + IDE together)
 
-Pre-configured launchers are provided in the `launchers/` directory:
+1. Open **Antigravity Desktop** and **Antigravity IDE** as usual (Start menu / taskbar). No per-app launcher.
+2. Double-click **one** file in `launchers/`:
+   * [`Auto_Submit_Antigravity.bat`](launchers/Auto_Submit_Antigravity.bat) — console logs (first run).
+   * [`Chay_Ngam_Auto_Submit.vbs`](launchers/Chay_Ngam_Auto_Submit.vbs) — hidden, no window.
+3. One daemon clicks `Submit` on Desktop and on the IDE extension.
 
-### Method 1: Interactive Console Mode (Recommended for first run)
-* Double-click [`launchers/Auto_Submit_Antigravity.bat`](launchers/Auto_Submit_Antigravity.bat).
-* Opens a command prompt window showing live connection logs and click timestamps.
+Stop: [`Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat).
 
-### Method 2: Silent Background Mode (Zero Console Window)
-* Double-click [`launchers/Chay_Ngam_Auto_Submit.vbs`](launchers/Chay_Ngam_Auto_Submit.vbs).
-* Runs completely hidden in the background without any command prompt window.
+Optional:
 
-### Method 3: Run Manually with Python
 ```powershell
 py -3 -u scripts/antigravity_auto_submit_daemon.py
 ```
-
-**Optional CLI Arguments:**
-* `--interval 1.5`: Polling interval for detecting Antigravity process/port (default: `2.0`s).
-* `--button-check-ms 400`: Frequency for checking the DOM for Submit buttons (default: `500`ms).
-
-### Method 4: Stop Daemon
-* Double-click [`launchers/Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat) to terminate all running background daemon instances.
 
 ---
 
@@ -186,29 +178,15 @@ antigravity-desktop-auto-submit/
 ├── prompts/
 │   └── activate_auto_submit.md             # Standalone prompt file for AI Agents
 ├── scripts/
-│   └── antigravity_auto_submit_daemon.py   # Main Python daemon script (CDP Engine)
+│   ├── antigravity_auto_submit_daemon.py   # Daemon: CDP Desktop + UIA IDE
+│   └── uia_permission_submit.py            # Click Submit in Antigravity IDE
 └── launchers/
-    ├── Auto_Submit_Antigravity.bat         # Interactive launcher with console output
-    ├── Chay_Ngam_Auto_Submit.vbs           # Completely hidden background launcher
-    ├── Khoi_Dong_Antigravity_Desktop.bat   # Launch Antigravity Desktop with port 9222 & Auto-Submit
-    ├── Khoi_Dong_Antigravity_IDE.bat       # Launch Antigravity IDE with port 9222 & Auto-Submit
-    └── Stop_Auto_Submit.bat                # Termination script for running daemons
+    ├── Auto_Submit_Antigravity.bat         # Start daemon (console)
+    ├── Chay_Ngam_Auto_Submit.vbs           # Start daemon (hidden)
+    └── Stop_Auto_Submit.bat                # Stop daemon
 ```
 
----
-
-## 🔧 Why Submit works on Desktop but not the IDE extension
-
-Verified on a live machine:
-
-* **Antigravity Desktop 2.0** publishes a Chrome DevTools port (`%APPDATA%\Antigravity\DevToolsActivePort`). The daemon injects JavaScript over CDP and can click `Submit ↵`.
-* **Antigravity IDE** (VS Code fork) does **not** expose CDP when launched from the Start Menu. There is no `DevToolsActivePort`, so the CDP injector never reaches the extension webview.
-* The permission dialog in the **Antigravity 2.0 Extension** is still visible to Windows UI Automation as a button named `Submit ↵` (next to `Skip`).
-
-This daemon now:
-
-1. Injects CDP into **all** live DevTools ports (Desktop, and IDE if you launched it with `--remote-debugging-port=9222`).
-2. Runs a UI Automation worker that invokes `Submit ↵` inside *Antigravity IDE* windows — no IDE relaunch required.
+One daemon covers both: Desktop via CDP, IDE/extension via UI Automation. Do not relaunch the apps or bind port 9222.
 
 ---
 

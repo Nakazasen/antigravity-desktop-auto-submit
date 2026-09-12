@@ -78,28 +78,21 @@ flowchart TD
 
 ---
 
-## 🚀 Hướng Dẫn Sử Dụng
+## 🚀 Cách dùng (Desktop + IDE cùng lúc)
 
-Kho lưu trữ đã được cấu hình sẵn các công cụ khởi chạy trong thư mục `launchers/`:
+1. Mở **Antigravity Desktop** và **Antigravity IDE** như bình thường (icon Start / taskbar). Không cần launcher riêng cho từng app.
+2. Bấm **một** file trong `launchers/`:
+   * [`Auto_Submit_Antigravity.bat`](launchers/Auto_Submit_Antigravity.bat) — hiện log, nên dùng lần đầu.
+   * [`Chay_Ngam_Auto_Submit.vbs`](launchers/Chay_Ngam_Auto_Submit.vbs) — chạy ẩn, không cửa sổ.
+3. Daemon tự bấm `Submit` trên Desktop và trên extension trong IDE. Chỉ chạy **một** daemon.
 
-### Cách 1: Chạy có giao diện Console (Khuyên dùng khi bắt đầu)
-* Nhấp đúp vào [`launchers/Auto_Submit_Antigravity.bat`](launchers/Auto_Submit_Antigravity.bat).
-* Cửa sổ dòng lệnh sẽ hiển thị chi tiết trạng thái kết nối cổng và lịch sử các lần bấm nút tự động.
+Tắt: [`Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat).
 
-### Cách 2: Chạy ẩn hoàn toàn dưới nền (Zero Window)
-* Nhấp đúp vào [`launchers/Chay_Ngam_Auto_Submit.vbs`](launchers/Chay_Ngam_Auto_Submit.vbs).
-* Script sẽ chạy hoàn toàn ẩn, không hiện bất kỳ cửa sổ console đen nào làm phiền màn hình.
+Lệnh Python (tùy chọn):
 
-### Cách 3: Chạy thủ công bằng lệnh Python
 ```powershell
 py -3 -u scripts/antigravity_auto_submit_daemon.py
 ```
-*Tùy chọn nâng cao:*
-* `--interval 1.5`: Chu kỳ kiểm tra tiến trình Antigravity (giây, mặc định: 2.0s).
-* `--button-check-ms 400`: Chu kỳ quét nút bấm trong giao diện (mili-giây, mặc định: 500ms).
-
-### Cách 4: Tắt Daemon khi không sử dụng
-* Nhấp đúp vào [`launchers/Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat) để đóng toàn bộ tiến trình Auto-Submit đang chạy ngầm.
 
 ---
 
@@ -186,31 +179,15 @@ antigravity-desktop-auto-submit/
 ├── prompts/
 │   └── activate_auto_submit.md             # Tệp prompt độc lập dùng cho AI Agent
 ├── scripts/
-│   └── antigravity_auto_submit_daemon.py   # Script Python chính kết nối CDP & tiêm JS
+│   ├── antigravity_auto_submit_daemon.py   # Daemon: CDP Desktop + UIA IDE
+│   └── uia_permission_submit.py            # Bấm Submit trên Antigravity IDE
 └── launchers/
-    ├── Auto_Submit_Antigravity.bat         # Trình chạy tương tác (hiện log console)
-    ├── Chay_Ngam_Auto_Submit.vbs           # Trình chạy ẩn 100% không hiện cửa sổ
-    ├── Khoi_Dong_Antigravity_Desktop.bat   # Khởi động Antigravity Desktop kèm port 9222 & Auto-Submit
-    ├── Khoi_Dong_Antigravity_IDE.bat       # Khởi động Antigravity IDE kèm port 9222 & Auto-Submit
-    └── Stop_Auto_Submit.bat                # Trình dừng tiến trình daemon
+    ├── Auto_Submit_Antigravity.bat         # Bật daemon (hiện log)
+    ├── Chay_Ngam_Auto_Submit.vbs           # Bật daemon ẩn
+    └── Stop_Auto_Submit.bat                # Tắt daemon
 ```
 
----
-
-## 🔧 Antigravity IDE / Extension không bấm được Submit?
-
-**Nguyên nhân đã xác minh trên máy thật:**
-
-* **Antigravity Desktop 2.0** tự ghi cổng Chrome DevTools vào `%APPDATA%\Antigravity\DevToolsActivePort`. Daemon tiêm JavaScript qua CDP và bấm `Submit ↵` được.
-* **Antigravity IDE** (bản VS Code) **không** mở cổng CDP khi mở bình thường từ Start Menu / icon. Không có `DevToolsActivePort`, các cổng nội bộ trả 403/404, nên injector CDP **không vào được** webview của extension.
-* Hộp thoại *Allow testing cached font performance?* / *Allow generating…?* nằm trong **Antigravity 2.0 Extension** trên IDE. Nút thật trên cây hỗ trợ tiếp cận Windows là `Submit ↵` (kèm nút `Skip` và radio *Yes, allow this time*).
-
-**Cách daemon xử lý từ bản này:**
-
-1. Desktop: vẫn tiêm CDP, quét **mọi** cổng DevTools chứ không dừng ở cổng đầu tiên.
-2. IDE / extension: luồng UI Automation riêng, tìm cửa sổ *Antigravity IDE* rồi `Invoke` nút `Submit ↵`. Không cần khởi động lại IDE với `--remote-debugging-port`.
-
-Chạy lại `launchers\Auto_Submit_Antigravity.bat` (hoặc `Chay_Ngam_Auto_Submit.vbs`) sau khi cập nhật. Log sẽ có dòng `[UIA] Da bam Submit tren Antigravity IDE`.
+Một daemon phủ cả hai: Desktop qua CDP, IDE/extension qua UI Automation. Không khởi động lại app, không cổng 9222.
 
 ---
 
