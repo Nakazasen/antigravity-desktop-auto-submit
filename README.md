@@ -60,7 +60,7 @@ flowchart TD
 ## 💡 Key Features
 
 * **⚡ Native CDP Injection**: Directly communicates with Antigravity Desktop's Electron renderer via Chrome DevTools Protocol WebSocket.
-* **🔄 Self-Healing / Auto-Reconnecting**: Automatically senses if Antigravity restarts or changes ports, seamlessly re-injecting the script.
+* **🔄 Self-Healing / Auto-Reconnecting**: Automatically senses if Antigravity restarts or changes ports. If `DevToolsActivePort` is stale, it discovers and validates the live CDP port owned by `Antigravity.exe` before re-injecting the script.
 * **📑 Persistent Across Conversations**: Registers `Page.addScriptToEvaluateOnNewDocument` so the auto-submitter remains active when opening new chat tabs or reloading.
 * **🪟 Stealth / Zero-Window Mode**: Run silently in the background with zero terminal popups via the provided VBScript launcher.
 

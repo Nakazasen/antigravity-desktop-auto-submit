@@ -13,9 +13,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import csv
 import json
 import os
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -46,6 +48,13 @@ PORT_FILES = [
 
 # Cac cong Remote Debugging tieu chuan khi mo bang co --remote-debugging-port
 DEFAULT_DEBUG_PORTS = [9222, 9229, 9333, 9230, 9223]
+
+# Antigravity normally writes its random CDP port to DevToolsActivePort. Some
+# releases/restarts leave that file stale, so periodically discover TCP ports
+# owned by Antigravity.exe and validate them with the CDP HTTP endpoint.
+PROCESS_PORT_SCAN_INTERVAL_SEC = 10.0
+_DISCOVERED_DEBUG_PORTS: set[int] = set()
+_LAST_PROCESS_PORT_SCAN_MONO = 0.0
 
 JS_PAYLOAD_TEMPLATE = """
 (() => {
@@ -172,19 +181,103 @@ def _ports_from_files() -> list[int]:
     return found
 
 
+def _run_hidden(command: list[str], timeout: float = 2.0) -> str:
+    """Run a Windows diagnostic command without flashing a console window."""
+    try:
+        completed = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+            check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return completed.stdout or ""
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def _antigravity_desktop_pids() -> set[int]:
+    """Return PIDs whose image name is exactly Antigravity.exe."""
+    output = _run_hidden(
+        [
+            "tasklist",
+            "/FI",
+            "IMAGENAME eq Antigravity.exe",
+            "/FO",
+            "CSV",
+            "/NH",
+        ]
+    )
+    pids: set[int] = set()
+    for row in csv.reader(output.splitlines()):
+        if len(row) < 2 or row[0].strip().casefold() != "antigravity.exe":
+            continue
+        try:
+            pids.add(int(row[1].replace(",", "").strip()))
+        except ValueError:
+            continue
+    return pids
+
+
+def _ports_from_antigravity_processes() -> list[int]:
+    """Find TCP local ports owned by Antigravity Desktop processes."""
+    pids = _antigravity_desktop_pids()
+    if not pids:
+        return []
+
+    ports: set[int] = set()
+    for line in _run_hidden(["netstat", "-ano", "-p", "tcp"]).splitlines():
+        parts = line.split()
+        if len(parts) < 4 or parts[0].upper() != "TCP":
+            continue
+        try:
+            pid = int(parts[-1])
+        except ValueError:
+            continue
+        if pid not in pids:
+            continue
+
+        port_text = parts[1].rsplit(":", 1)[-1]
+        if port_text.isdigit():
+            ports.add(int(port_text))
+    return sorted(ports)
+
+
+def _live_cdp_ports(candidates: list[int]) -> list[str]:
+    live: list[str] = []
+    for port in candidates:
+        if is_port_listening(port) and _port_speaks_cdp(port):
+            live.append(str(port))
+    return live
+
+
 def get_active_ports() -> list[str]:
     """Tat ca cong CDP dang song. IDE thuong khong co CDP; Submit tren IDE di qua UIA."""
+    global _LAST_PROCESS_PORT_SCAN_MONO
+
     candidates: list[int] = []
-    for port in _ports_from_files() + DEFAULT_DEBUG_PORTS:
+    for port in _ports_from_files() + DEFAULT_DEBUG_PORTS + sorted(_DISCOVERED_DEBUG_PORTS):
         if port not in candidates:
             candidates.append(port)
 
-    live: list[str] = []
-    for port in candidates:
-        if not is_port_listening(port):
-            continue
-        if _port_speaks_cdp(port):
-            live.append(str(port))
+    live = _live_cdp_ports(candidates)
+
+    now = time.monotonic()
+    scan_due = not live or now - _LAST_PROCESS_PORT_SCAN_MONO >= PROCESS_PORT_SCAN_INTERVAL_SEC
+    if scan_due:
+        _LAST_PROCESS_PORT_SCAN_MONO = now
+        discovered = _ports_from_antigravity_processes()
+        new_candidates = [port for port in discovered if port not in candidates]
+        live.extend(_live_cdp_ports(new_candidates))
+
+    live = sorted(set(live), key=int)
+    live_numbers = {int(port) for port in live}
+    _DISCOVERED_DEBUG_PORTS.intersection_update(live_numbers)
+    _DISCOVERED_DEBUG_PORTS.update(live_numbers)
     return live
 
 
@@ -293,7 +386,8 @@ async def main_loop(poll_interval: float = 2.0, check_interval_ms: int = 500):
 
     start_uia_worker(poll_interval)
 
-    last_ports: set[str] = set()
+    # None makes the initial "no CDP" state visible instead of silently looking healthy.
+    last_ports: set[str] | None = None
     injected_pages: set[str] = set()
 
     while True:

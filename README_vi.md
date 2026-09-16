@@ -60,7 +60,7 @@ flowchart TD
 ## 💡 Điểm Nổi Bật
 
 * **⚡ Tiêm CDP Trực Tiếp**: Giao tiếp trực tiếp với tiến trình hiển thị của Antigravity Desktop qua giao thức WebSocket chuẩn của Chrome DevTools.
-* **🔄 Tự Phục Hồi & Tái Kết Nối**: Tự động phát hiện khi bạn tắt đi bật lại Antigravity Desktop và kết nối lại cổng mới ngay tức khắc.
+* **🔄 Tự Phục Hồi & Tái Kết Nối**: Tự động phát hiện khi Antigravity Desktop khởi động lại hoặc đổi cổng. Nếu `DevToolsActivePort` bị cũ, daemon sẽ dò và xác thực cổng CDP thực tế thuộc tiến trình `Antigravity.exe` trước khi tiêm lại script.
 * **📑 Giữ Trạng Thái Xuyên Suốt**: Đăng ký `Page.addScriptToEvaluateOnNewDocument` nên dù bạn chuyển tab hay mở hội thoại mới, tính năng auto-submit vẫn duy trì.
 * **🪟 Chạy Ẩn 100% (Zero Window)**: Đi kèm launcher VBScript chạy nền hoàn toàn không hiện bất kỳ cửa sổ console đen nào.
 
