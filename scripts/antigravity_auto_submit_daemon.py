@@ -2,8 +2,8 @@
 Antigravity Desktop & IDE 2.0 - Auto-Submit Daemon
 ===================================================
 Tu dong phat hien va ket noi qua Chrome DevTools Protocol (CDP)
-cua Antigravity Desktop, va bam nut Submit cua Antigravity 2.0
-Extension tren Antigravity IDE qua Windows UI Automation.
+cua Antigravity Desktop, va bam nut Submit cua extension Antigravity
+tren Antigravity IDE va Visual Studio Code qua Windows UI Automation.
 
 Tac gia: Nakazasen
 Repository: https://github.com/Nakazasen/antigravity-desktop-auto-submit
@@ -329,7 +329,7 @@ def _uia_log(message: str) -> None:
 
 
 def start_uia_worker(poll_interval: float) -> None:
-    """Luong STA rieng: bam Submit cua extension tren Antigravity IDE."""
+    """Luong STA rieng: bam Submit cua extension tren Antigravity IDE va VS Code."""
 
     def worker() -> None:
         try:
@@ -339,7 +339,7 @@ def start_uia_worker(poll_interval: float) -> None:
         except Exception as exc:
             print(
                 f"[{time.strftime('%H:%M:%S')}] [CANH BAO] Khong khoi tao duoc UI Automation ({exc}). "
-                f"Phan bam Submit tren Antigravity IDE se khong chay. Cai: pip install comtypes",
+                f"Phan bam Submit tren Antigravity IDE / VS Code se khong chay. Cai: pip install comtypes",
                 flush=True,
             )
             return
@@ -352,7 +352,7 @@ def start_uia_worker(poll_interval: float) -> None:
             )
             return
         print(
-            f"[{time.strftime('%H:%M:%S')}] [UIA] Da bat giam sat nut Submit tren Antigravity IDE (extension).",
+            f"[{time.strftime('%H:%M:%S')}] [UIA] Da bat giam sat nut Submit (Antigravity IDE + VS Code).",
             flush=True,
         )
         while True:
@@ -372,11 +372,11 @@ def start_uia_worker(poll_interval: float) -> None:
 async def main_loop(poll_interval: float = 2.0, check_interval_ms: int = 500):
     print("===================================================================", flush=True)
     print("   ANTIGRAVITY DESKTOP & IDE 2.0 - AUTO SUBMIT DAEMON              ", flush=True)
-    print("   CDP: Desktop  |  UI Automation: IDE extension                   ", flush=True)
+    print("   CDP: Desktop  |  UIA: Antigravity IDE + VS Code extension     ", flush=True)
     print("===================================================================", flush=True)
     print(f"[{time.strftime('%H:%M:%S')}] [KHOI DONG] Daemon dang chay (PID: {os.getpid()})...", flush=True)
     print(
-        f"[{time.strftime('%H:%M:%S')}] [THEO DOI] Desktop qua CDP; IDE/extension qua UI Automation",
+        f"[{time.strftime('%H:%M:%S')}] [THEO DOI] Desktop qua CDP; Antigravity IDE va VS Code qua UI Automation",
         flush=True,
     )
     print(
@@ -398,7 +398,7 @@ async def main_loop(poll_interval: float = 2.0, check_interval_ms: int = 500):
                 if not current:
                     print(
                         f"[{time.strftime('%H:%M:%S')}] [MAT KET NOI CDP] Khong con cong DevTools. "
-                        f"Van tiep tuc bam Submit tren IDE bang UI Automation.",
+                        f"Van tiep tuc bam Submit tren Antigravity IDE va VS Code bang UI Automation.",
                         flush=True,
                     )
                 else:

@@ -80,11 +80,11 @@ flowchart TD
 
 ## 🚀 How to Run (Desktop + IDE together)
 
-1. Open **Antigravity Desktop** and **Antigravity IDE** as usual (Start menu / taskbar). No per-app launcher.
+1. Open **Antigravity Desktop**, **Antigravity IDE**, or **Visual Studio Code** (Antigravity extension) as usual. No per-app launcher.
 2. Double-click **one** file in `launchers/`:
    * [`Auto_Submit_Antigravity.bat`](launchers/Auto_Submit_Antigravity.bat) — console logs (first run).
    * [`Chay_Ngam_Auto_Submit.vbs`](launchers/Chay_Ngam_Auto_Submit.vbs) — hidden, no window.
-3. One daemon clicks `Submit` on Desktop and on the IDE extension.
+3. One daemon clicks `Submit` on Desktop, on Antigravity IDE, and on the extension inside VS Code.
 
 Stop: [`Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat).
 
@@ -179,14 +179,14 @@ antigravity-desktop-auto-submit/
 │   └── activate_auto_submit.md             # Standalone prompt file for AI Agents
 ├── scripts/
 │   ├── antigravity_auto_submit_daemon.py   # Daemon: CDP Desktop + UIA IDE
-│   └── uia_permission_submit.py            # Click Submit in Antigravity IDE
+│   └── uia_permission_submit.py            # Click Submit in Antigravity IDE and VS Code
 └── launchers/
     ├── Auto_Submit_Antigravity.bat         # Start daemon (console)
     ├── Chay_Ngam_Auto_Submit.vbs           # Start daemon (hidden)
     └── Stop_Auto_Submit.bat                # Stop daemon
 ```
 
-One daemon covers both: Desktop via CDP, IDE/extension via UI Automation. Do not relaunch the apps or bind port 9222.
+One daemon covers all three: Desktop via CDP, plus Antigravity IDE and the VS Code extension via UI Automation. Do not relaunch the apps or bind port 9222.
 
 ---
 

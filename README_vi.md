@@ -80,11 +80,11 @@ flowchart TD
 
 ## 🚀 Cách dùng (Desktop + IDE cùng lúc)
 
-1. Mở **Antigravity Desktop** và **Antigravity IDE** như bình thường (icon Start / taskbar). Không cần launcher riêng cho từng app.
+1. Mở **Antigravity Desktop**, **Antigravity IDE** hoặc **Visual Studio Code** (extension Antigravity) như bình thường. Không cần launcher riêng cho từng app.
 2. Bấm **một** file trong `launchers/`:
    * [`Auto_Submit_Antigravity.bat`](launchers/Auto_Submit_Antigravity.bat) — hiện log, nên dùng lần đầu.
    * [`Chay_Ngam_Auto_Submit.vbs`](launchers/Chay_Ngam_Auto_Submit.vbs) — chạy ẩn, không cửa sổ.
-3. Daemon tự bấm `Submit` trên Desktop và trên extension trong IDE. Chỉ chạy **một** daemon.
+3. Daemon tự bấm `Submit` trên Desktop, trên Antigravity IDE và trên extension trong VS Code. Chỉ chạy **một** daemon.
 
 Tắt: [`Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat).
 
@@ -180,14 +180,14 @@ antigravity-desktop-auto-submit/
 │   └── activate_auto_submit.md             # Tệp prompt độc lập dùng cho AI Agent
 ├── scripts/
 │   ├── antigravity_auto_submit_daemon.py   # Daemon: CDP Desktop + UIA IDE
-│   └── uia_permission_submit.py            # Bấm Submit trên Antigravity IDE
+│   └── uia_permission_submit.py            # Bấm Submit trên Antigravity IDE và VS Code
 └── launchers/
     ├── Auto_Submit_Antigravity.bat         # Bật daemon (hiện log)
     ├── Chay_Ngam_Auto_Submit.vbs           # Bật daemon ẩn
     └── Stop_Auto_Submit.bat                # Tắt daemon
 ```
 
-Một daemon phủ cả hai: Desktop qua CDP, IDE/extension qua UI Automation. Không khởi động lại app, không cổng 9222.
+Một daemon phủ cả ba: Desktop qua CDP, Antigravity IDE và extension trong VS Code qua UI Automation. Không khởi động lại app, không cổng 9222.
 
 ---
 
