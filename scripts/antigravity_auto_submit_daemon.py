@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
+import ctypes
 import json
 import os
 import socket
@@ -138,6 +139,48 @@ JS_PAYLOAD_TEMPLATE = """
   return 'injected_successfully';
 })()
 """
+
+
+# Clicking/dragging inside this daemon's console puts conhost into selection
+# mode ("Select ..." in the title) and every later print() blocks, wedging
+# both the CDP loop and the UIA worker with zero log output. Disable that
+# selection mode for our console at startup (fail-safe: never raises).
+_STD_INPUT_HANDLE = -10
+_ENABLE_QUICK_EDIT_MODE = 0x0040
+_ENABLE_MOUSE_INPUT = 0x0010
+_ENABLE_EXTENDED_FLAGS = 0x0080
+
+
+def _quick_edit_safe_mode(mode: int) -> int:
+    """Console input mode with selection-based freezing turned off."""
+    return (mode | _ENABLE_EXTENDED_FLAGS) & ~(
+        _ENABLE_QUICK_EDIT_MODE | _ENABLE_MOUSE_INPUT
+    )
+
+
+def _disable_console_quick_edit() -> bool:
+    """Turn off QuickEdit for this console. Returns True on success."""
+    if os.name != "nt":
+        return False
+    try:
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetStdHandle.argtypes = [wintypes.DWORD]
+        kernel32.GetStdHandle.restype = wintypes.HANDLE
+        kernel32.GetConsoleMode.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        kernel32.GetConsoleMode.restype = wintypes.BOOL
+        kernel32.SetConsoleMode.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        kernel32.SetConsoleMode.restype = wintypes.BOOL
+        handle = kernel32.GetStdHandle(_STD_INPUT_HANDLE)
+        if not handle:
+            return False
+        mode = wintypes.DWORD()
+        if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        return bool(kernel32.SetConsoleMode(handle, _quick_edit_safe_mode(mode.value)))
+    except Exception:
+        return False
 
 
 def is_port_listening(port: int) -> bool:
@@ -370,6 +413,12 @@ def start_uia_worker(poll_interval: float) -> None:
 
 
 async def main_loop(poll_interval: float = 2.0, check_interval_ms: int = 500):
+    if _disable_console_quick_edit():
+        print(
+            f"[{time.strftime('%H:%M:%S')}] [THIET LAP] Da tat che do chon text (QuickEdit) "
+            f"de console khong bi treo khi click vao.",
+            flush=True,
+        )
     print("===================================================================", flush=True)
     print("   ANTIGRAVITY DESKTOP & IDE 2.0 - AUTO SUBMIT DAEMON              ", flush=True)
     print("   CDP: Desktop  |  UIA: Antigravity IDE + VS Code extension     ", flush=True)
