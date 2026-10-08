@@ -3,7 +3,8 @@ Antigravity Desktop & IDE 2.0 - Auto-Submit Daemon
 ===================================================
 Tu dong phat hien va ket noi qua Chrome DevTools Protocol (CDP)
 cua Antigravity Desktop, va bam nut Submit cua extension Antigravity
-tren Antigravity IDE va Visual Studio Code qua Windows UI Automation.
+tren Antigravity IDE, Visual Studio Code va tab web Antigravity tren
+Chrome/Edge qua Windows UI Automation.
 
 Tac gia: Nakazasen
 Repository: https://github.com/Nakazasen/antigravity-desktop-auto-submit
@@ -372,7 +373,7 @@ def _uia_log(message: str) -> None:
 
 
 def start_uia_worker(poll_interval: float) -> None:
-    """Luong STA rieng: bam Submit cua extension tren Antigravity IDE va VS Code."""
+    """Luong STA rieng: bam Submit cua extension tren Antigravity IDE, VS Code va Chrome."""
 
     def worker() -> None:
         try:
@@ -382,7 +383,7 @@ def start_uia_worker(poll_interval: float) -> None:
         except Exception as exc:
             print(
                 f"[{time.strftime('%H:%M:%S')}] [CANH BAO] Khong khoi tao duoc UI Automation ({exc}). "
-                f"Phan bam Submit tren Antigravity IDE / VS Code se khong chay. Cai: pip install comtypes",
+                f"Phan bam Submit tren Antigravity IDE / VS Code / Chrome se khong chay. Cai: pip install comtypes",
                 flush=True,
             )
             return
@@ -395,7 +396,7 @@ def start_uia_worker(poll_interval: float) -> None:
             )
             return
         print(
-            f"[{time.strftime('%H:%M:%S')}] [UIA] Da bat giam sat nut Submit (Antigravity IDE + VS Code).",
+            f"[{time.strftime('%H:%M:%S')}] [UIA] Da bat giam sat nut Submit (Antigravity IDE + VS Code + Chrome).",
             flush=True,
         )
         while True:
@@ -421,11 +422,11 @@ async def main_loop(poll_interval: float = 2.0, check_interval_ms: int = 500):
         )
     print("===================================================================", flush=True)
     print("   ANTIGRAVITY DESKTOP & IDE 2.0 - AUTO SUBMIT DAEMON              ", flush=True)
-    print("   CDP: Desktop  |  UIA: Antigravity IDE + VS Code extension     ", flush=True)
+    print("   CDP: Desktop  |  UIA: Antigravity IDE + VS Code + Chrome ext     ", flush=True)
     print("===================================================================", flush=True)
     print(f"[{time.strftime('%H:%M:%S')}] [KHOI DONG] Daemon dang chay (PID: {os.getpid()})...", flush=True)
     print(
-        f"[{time.strftime('%H:%M:%S')}] [THEO DOI] Desktop qua CDP; Antigravity IDE va VS Code qua UI Automation",
+        f"[{time.strftime('%H:%M:%S')}] [THEO DOI] Desktop qua CDP; Antigravity IDE, VS Code va Chrome qua UI Automation",
         flush=True,
     )
     print(
@@ -447,7 +448,7 @@ async def main_loop(poll_interval: float = 2.0, check_interval_ms: int = 500):
                 if not current:
                     print(
                         f"[{time.strftime('%H:%M:%S')}] [MAT KET NOI CDP] Khong con cong DevTools. "
-                        f"Van tiep tuc bam Submit tren Antigravity IDE va VS Code bang UI Automation.",
+                        f"Van tiep tuc bam Submit tren Antigravity IDE, VS Code va Chrome bang UI Automation.",
                         flush=True,
                     )
                 else:
@@ -488,11 +489,62 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Antigravity Desktop & IDE 2.0 Auto-Submit Daemon")
     parser.add_argument("--interval", type=float, default=2.0, help="Chu ky quet tien trinh / cong port (giay, mac dinh: 2.0)")
     parser.add_argument("--button-check-ms", type=int, default=500, help="Chu ky tim nut Submit trong giao dien (ms, mac dinh: 500)")
+    parser.add_argument("--log-file", type=str, default="", help="Ghi them log ra file (dung khi chay an/hidden, mac dinh: khong ghi)")
     return parser.parse_args()
+
+
+class _TeeStream:
+    """Duplicate writes to the console stream and a log file (for hidden runs)."""
+
+    def __init__(self, console_stream, path: str):
+        self._console = console_stream
+        self._handle = open(path, "a", encoding="utf-8", errors="replace")
+
+    def write(self, data):
+        try:
+            if self._console is not None:
+                self._console.write(data)
+        except Exception:
+            pass
+        try:
+            self._handle.write(data)
+        except Exception:
+            pass
+        return len(data)
+
+    def flush(self):
+        try:
+            if self._console is not None:
+                self._console.flush()
+        except Exception:
+            pass
+        try:
+            self._handle.flush()
+        except Exception:
+            pass
+
+    def close(self):
+        try:
+            self._handle.close()
+        except Exception:
+            pass
+
+
+def _enable_file_log(path: str) -> bool:
+    """Tee stdout/stderr to `path`. Never raises; returns success."""
+    if not path:
+        return False
+    try:
+        sys.stdout = _TeeStream(sys.stdout, path)
+        sys.stderr = _TeeStream(sys.stderr, path)
+        return True
+    except Exception:
+        return False
 
 
 if __name__ == "__main__":
     args = parse_args()
+    _enable_file_log(args.log_file)
     try:
         asyncio.run(main_loop(poll_interval=args.interval, check_interval_ms=args.button_check_ms))
     except KeyboardInterrupt:

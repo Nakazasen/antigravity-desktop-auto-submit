@@ -23,5 +23,5 @@ If colProcesses.Count > 0 Then
 Else
     cmd = "py -3 -u """ & daemonPath & """"
     WshShell.Run cmd, 0, False
-    MsgBox "Antigravity Auto-Submit da chay ngam. Mo Desktop, Antigravity IDE hoac VS Code nhu binh thuong; daemon se tu bam Submit.", 64, "Antigravity Auto-Submit"
+    MsgBox "Antigravity Auto-Submit da chay ngam. Mo Desktop, Antigravity IDE, VS Code hoac tab Chrome nhu binh thuong; daemon se tu bam Submit.", 64, "Antigravity Auto-Submit"
 End If

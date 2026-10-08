@@ -5,7 +5,7 @@ cd /d "%~dp0\.."
 
 echo ========================================================
 echo   ANTIGRAVITY AUTO-SUBMIT
-echo   Desktop 2.0 + Antigravity IDE + VS Code: tu bam Submit/Allow
+echo   Desktop 2.0 + Antigravity IDE + VS Code + Chrome: tu bam Submit/Allow
 echo ========================================================
 echo.
 

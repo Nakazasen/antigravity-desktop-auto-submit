@@ -80,11 +80,11 @@ flowchart TD
 
 ## 🚀 How to Run (Desktop + IDE together)
 
-1. Open **Antigravity Desktop**, **Antigravity IDE**, or **Visual Studio Code** (Antigravity extension) as usual. No per-app launcher.
+1. Open **Antigravity Desktop**, **Antigravity IDE**, **Visual Studio Code** (Antigravity extension), or the Antigravity web UI in a **Chrome/Edge tab** as usual. No per-app launcher.
 2. Double-click **one** file in `launchers/`:
    * [`Auto_Submit_Antigravity.bat`](launchers/Auto_Submit_Antigravity.bat) — console logs (first run).
    * [`Chay_Ngam_Auto_Submit.vbs`](launchers/Chay_Ngam_Auto_Submit.vbs) — hidden, no window.
-3. One daemon clicks `Submit` on Desktop, on Antigravity IDE, and on the extension inside VS Code.
+3. One daemon clicks `Submit` on Desktop, on Antigravity IDE, on the extension inside VS Code, and on the Antigravity web UI in browser tabs (active tab via UI Automation; every tab when Chrome runs with [`Chrome_Debug_9333.bat`](launchers/Chrome_Debug_9333.bat)).
 
 Stop: [`Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat).
 
@@ -179,14 +179,15 @@ antigravity-desktop-auto-submit/
 │   └── activate_auto_submit.md             # Standalone prompt file for AI Agents
 ├── scripts/
 │   ├── antigravity_auto_submit_daemon.py   # Daemon: CDP Desktop + UIA IDE
-│   └── uia_permission_submit.py            # Click Submit in Antigravity IDE and VS Code
+│   └── uia_permission_submit.py            # Click Submit in Antigravity IDE, VS Code, browser tabs
 └── launchers/
     ├── Auto_Submit_Antigravity.bat         # Start daemon (console)
     ├── Chay_Ngam_Auto_Submit.vbs           # Start daemon (hidden)
+    ├── Chrome_Debug_9333.bat               # Chrome with CDP port (all tabs)
     └── Stop_Auto_Submit.bat                # Stop daemon
 ```
 
-One daemon covers all three: Desktop via CDP, plus Antigravity IDE and the VS Code extension via UI Automation. Do not relaunch the apps or bind port 9222.
+One daemon covers all: Desktop via CDP, plus Antigravity IDE, the VS Code extension, and browser tabs via UI Automation. Do not relaunch the apps or bind port 9222.
 
 ---
 

@@ -8,6 +8,10 @@ Visual Studio Code does not: those hosts are launched without
 The permission dialog (Allow running / Allow listing / Allow testing)
 is still in the accessibility tree as a Button named "Submit ↵" next to Skip.
 This module invokes that button. No extra runtime besides comtypes.
+
+The Antigravity web UI opened as a browser tab (https://127.0.0.1:PORT/c/...)
+is matched only when its address bar proves it is the local Antigravity UI,
+never the open web.
 """
 
 from __future__ import annotations
@@ -45,6 +49,13 @@ _HOST_PROCESS_NAMES = {
     "code - insiders.exe",
 }
 
+# A browser tab showing the local Antigravity web UI (no CDP there either).
+# Browsers additionally need address-bar proof (see _browser_local_url).
+_BROWSER_PROCESS_NAMES = {
+    "chrome.exe",
+    "msedge.exe",
+}
+
 
 def _is_agent_host_window(title: str, image_name: str = "") -> bool:
     """True for Antigravity IDE, or VS Code hosting the Antigravity extension."""
@@ -65,7 +76,52 @@ def _host_label(title: str, image_name: str = "") -> str:
         or "code - insiders.exe" in folded
     ):
         return "VS Code"
+    if "msedge.exe" in folded:
+        return "Edge"
+    if "chrome.exe" in folded:
+        return "Chrome"
     return "Antigravity IDE"
+
+
+def _browser_local_url(auto, scan_root) -> str:
+    """Address-bar URL when a browser shows the local Antigravity web UI.
+
+    Returns "" otherwise, so Submit on any other website is never touched.
+    """
+    from comtypes.gen.UIAutomationClient import (
+        IUIAutomationValuePattern,
+        TreeScope_Descendants,
+        UIA_ControlTypePropertyId,
+        UIA_EditControlTypeId,
+        UIA_ValuePatternId,
+    )
+
+    try:
+        cond = auto.CreatePropertyCondition(
+            UIA_ControlTypePropertyId, UIA_EditControlTypeId
+        )
+        edits = scan_root.FindAll(TreeScope_Descendants, cond)
+    except Exception:
+        return ""
+    try:
+        total = int(edits.Length)
+    except Exception:
+        return ""
+    for index in range(min(total, 25)):
+        try:
+            element = edits.GetElement(index)
+            pattern = element.GetCurrentPattern(UIA_ValuePatternId)
+            if not pattern:
+                continue
+            value = pattern.QueryInterface(IUIAutomationValuePattern).CurrentValue or ""
+        except Exception:
+            continue
+        lowered = value.strip().lower()
+        if ("127.0.0.1" in lowered or "localhost" in lowered) and (
+            "/c/" in lowered or "antigravity" in lowered
+        ):
+            return value.strip()
+    return ""
 
 
 def _native_hwnd(element) -> int:
@@ -220,15 +276,22 @@ def _match_permission_submit(auto, window_el):
 
     title = _safe_name(window_el)
     image = ""
+    browser = False
     if not _is_agent_host_window(title):
         try:
             image = _process_image_name(int(window_el.CurrentProcessId))
         except Exception:
             image = ""
         if not _is_agent_host_window(title, image):
-            return None
+            browser = (image or "").casefold() in _BROWSER_PROCESS_NAMES
+            if not browser or "antigravity" not in (title or "").casefold():
+                return None
 
     scan_root = _refresh_window_element(auto, window_el, hwnd)
+    if browser and not _browser_local_url(auto, scan_root):
+        # A browser tab is only a host when the address bar proves it shows
+        # the local Antigravity web UI; never touch the open web.
+        return None
     button_cond = auto.CreatePropertyCondition(
         UIA_ControlTypePropertyId, UIA_ButtonControlTypeId
     )
