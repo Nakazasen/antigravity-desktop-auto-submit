@@ -58,13 +58,7 @@ PROCESS_PORT_SCAN_INTERVAL_SEC = 10.0
 _DISCOVERED_DEBUG_PORTS: set[int] = set()
 _LAST_PROCESS_PORT_SCAN_MONO = 0.0
 
-JS_PAYLOAD_TEMPLATE = """
-(() => {
-  if (window.__agAutoSubmitActive) return 'already_active';
-  window.__agAutoSubmitActive = true;
-
-  console.log('[Antigravity Auto-Submit] Daemon active (shadow DOM + iframe + vscode-button)...');
-
+JS_DOM_HELPERS = """
   const isVisible = (el) => {
     if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
     const style = window.getComputedStyle ? window.getComputedStyle(el) : null;
@@ -115,7 +109,15 @@ JS_PAYLOAD_TEMPLATE = """
     text === 'yes, allow this time' ||
     text === 'approve' ||
     text === 'confirm';
+"""
 
+JS_PAYLOAD_TEMPLATE = """
+(() => {
+  if (window.__agAutoSubmitActive) return 'already_active';
+  window.__agAutoSubmitActive = true;
+
+  console.log('[Antigravity Auto-Submit] Daemon active (shadow DOM + iframe + vscode-button)...');
+__HELPERS__
   window.__agAutoSubmitTimer = setInterval(() => {
     try {
       const buttons = getAllButtons();
@@ -139,7 +141,32 @@ JS_PAYLOAD_TEMPLATE = """
 
   return 'injected_successfully';
 })()
-"""
+""".replace("__HELPERS__", JS_DOM_HELPERS)
+
+# One-shot find-and-click, evaluated by the daemon on every poll. Unlike the
+# in-page timer (throttled to ~1/min in background tabs), this runs immediately
+# even when the tab is hidden, and never touches the user's mouse.
+JS_CLICK_ONCE = """
+(() => {
+__HELPERS__
+  try {
+    const buttons = getAllButtons();
+    const submitBtn = buttons.find((b) => isSubmit(buttonText(b)) && isVisible(b));
+    if (submitBtn) {
+      submitBtn.focus();
+      submitBtn.click();
+      return 'clicked:submit';
+    }
+    const allowBtn = buttons.find((b) => isAllow(buttonText(b)) && isVisible(b));
+    if (allowBtn) {
+      allowBtn.focus();
+      allowBtn.click();
+      return 'clicked:allow';
+    }
+  } catch (err) {}
+  return 'none';
+})()
+""".replace("__HELPERS__", JS_DOM_HELPERS)
 
 
 # Clicking/dragging inside this daemon's console puts conhost into selection
@@ -368,6 +395,38 @@ async def inject_page(ws_url: str, check_interval_ms: int = 500) -> bool:
         return False
 
 
+async def click_once(ws_url: str) -> str:
+    """Tim va bam ngay nut Submit/Allow trong trang qua CDP.
+
+    Chay ngay lap tuc ke ca khi tab dang nen (timer trong trang bi
+    tri hoan o tab nen), va khong cham vao chuot cua nguoi dung.
+    Tra ve 'clicked:submit' / 'clicked:allow' / 'none'.
+    """
+    try:
+        async with websockets.connect(ws_url, open_timeout=2) as ws:
+            await ws.send(
+                json.dumps(
+                    {
+                        "id": 1,
+                        "method": "Runtime.evaluate",
+                        "params": {"expression": JS_CLICK_ONCE, "returnByValue": True},
+                    }
+                )
+            )
+            while True:
+                resp = json.loads(await asyncio.wait_for(ws.recv(), timeout=5))
+                if resp.get("id") == 1:
+                    value = resp.get("result", {}).get("result", {}).get("value")
+                    return value if value in ("clicked:submit", "clicked:allow") else "none"
+    except Exception:
+        pass
+    return "none"
+
+
+_CDP_CLICK_LOG_COOLDOWN_SEC = 30.0
+_LAST_CDP_CLICK_LOG_MONO: dict[str, float] = {}
+
+
 def _uia_log(message: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {message}", flush=True)
 
@@ -468,6 +527,21 @@ async def main_loop(poll_interval: float = 2.0, check_interval_ms: int = 500):
                         active_page_ids.add(f"{port}:{page_id}")
                     ws_url = page.get("webSocketDebuggerUrl")
                     key = f"{port}:{page_id}"
+                    if page_id and ws_url:
+                        # Bam truc tiep moi vong quet: co tac dung ngay ca khi
+                        # tab dang nen, khong can mo tab, khong cuop chuot.
+                        clicked = await click_once(ws_url)
+                        if clicked in ("clicked:submit", "clicked:allow"):
+                            now = time.monotonic()
+                            last_log = _LAST_CDP_CLICK_LOG_MONO.get(key, 0.0)
+                            if now - last_log >= _CDP_CLICK_LOG_COOLDOWN_SEC:
+                                _LAST_CDP_CLICK_LOG_MONO[key] = now
+                                title = (page.get("title") or "Antigravity View")[:45]
+                                print(
+                                    f"[{time.strftime('%H:%M:%S')}] [THANH CONG] Da bam Submit truc tiep qua CDP "
+                                    f"({clicked}) cho: '{title}' (Port: {port}, Page: {str(page_id)[:8]})",
+                                    flush=True,
+                                )
                     if page_id and key not in injected_pages and ws_url:
                         success = await inject_page(ws_url, check_interval_ms)
                         if success:
@@ -479,6 +553,9 @@ async def main_loop(poll_interval: float = 2.0, check_interval_ms: int = 500):
                                 flush=True,
                             )
             injected_pages = injected_pages.intersection(active_page_ids)
+            for logged_key in list(_LAST_CDP_CLICK_LOG_MONO):
+                if logged_key not in active_page_ids:
+                    del _LAST_CDP_CLICK_LOG_MONO[logged_key]
         except Exception:
             pass
 

@@ -80,13 +80,13 @@ flowchart TD
 
 ## 🚀 How to Run (Desktop + IDE together)
 
-1. Open **Antigravity Desktop**, **Antigravity IDE**, **Visual Studio Code** (Antigravity extension), or the Antigravity web UI in a **Chrome/Edge tab** as usual. No per-app launcher.
-2. Double-click **one** file in `launchers/`:
-   * [`Auto_Submit_Antigravity.bat`](launchers/Auto_Submit_Antigravity.bat) — console logs (first run).
-   * [`Chay_Ngam_Auto_Submit.vbs`](launchers/Chay_Ngam_Auto_Submit.vbs) — hidden, no window.
-3. One daemon clicks `Submit` on Desktop, on Antigravity IDE, on the extension inside VS Code, and on the Antigravity web UI in browser tabs (active tab via UI Automation; every tab when Chrome runs with [`Chrome_Debug_9333.bat`](launchers/Chrome_Debug_9333.bat)).
+1. Open **Antigravity Desktop**, **Antigravity IDE**, **Visual Studio Code**, or the Antigravity web UI in a **Chrome/Edge tab** as usual.
+2. Double-click [`Antigravity_Auto_Submit.bat`](launchers/Antigravity_Auto_Submit.bat) and pick:
+   * `1` full with logs, or `2` full hidden — daemon + debug Chrome (every tab, no mouse stealing).
+   * `3` daemon only (keeps your current Chrome — active tab only).
+3. One daemon clicks `Submit` on Desktop, on Antigravity IDE, on the extension inside VS Code, and on the Antigravity web UI in browser tabs. CDP clicks work on hidden/background tabs without moving your mouse.
 
-Stop: [`Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat).
+Stop everything at once: [`Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat) (daemon + debug Chrome; normal Chrome untouched).
 
 Optional:
 
@@ -181,10 +181,8 @@ antigravity-desktop-auto-submit/
 │   ├── antigravity_auto_submit_daemon.py   # Daemon: CDP Desktop + UIA IDE
 │   └── uia_permission_submit.py            # Click Submit in Antigravity IDE, VS Code, browser tabs
 └── launchers/
-    ├── Auto_Submit_Antigravity.bat         # Start daemon (console)
-    ├── Chay_Ngam_Auto_Submit.vbs           # Start daemon (hidden)
-    ├── Chrome_Debug_9333.bat               # Chrome with CDP port (all tabs)
-    └── Stop_Auto_Submit.bat                # Stop daemon
+    ├── Antigravity_Auto_Submit.bat         # Single launcher (menu)
+    └── Stop_Auto_Submit.bat                # Stop everything at once
 ```
 
 One daemon covers all: Desktop via CDP, plus Antigravity IDE, the VS Code extension, and browser tabs via UI Automation. Do not relaunch the apps or bind port 9222.

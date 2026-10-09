@@ -245,19 +245,23 @@ def _click_bounding_rect(element) -> bool:
 
 
 def _invoke(element) -> bool:
+    """Invoke the button without touching the mouse when possible.
+
+    UIA Invoke activates the control in place (no cursor move, works on
+    background windows). The physical mouse click is only a fallback for
+    Chromium hosts that ignore Invoke.
+    """
     from comtypes.gen.UIAutomationClient import IUIAutomationInvokePattern, UIA_InvokePatternId
 
-    invoked = False
     try:
         pattern = element.GetCurrentPattern(UIA_InvokePatternId)
         if pattern:
             invoker = pattern.QueryInterface(IUIAutomationInvokePattern)
             invoker.Invoke()
-            invoked = True
+            return True
     except Exception:
-        invoked = False
-    clicked = _click_bounding_rect(element)
-    return invoked or clicked
+        pass
+    return _click_bounding_rect(element)
 
 
 def _match_permission_submit(auto, window_el):

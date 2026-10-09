@@ -80,13 +80,13 @@ flowchart TD
 
 ## 🚀 Cách dùng (Desktop + IDE cùng lúc)
 
-1. Mở **Antigravity Desktop**, **Antigravity IDE**, **Visual Studio Code** (extension Antigravity) hoặc web UI Antigravity trên **tab Chrome/Edge** như bình thường. Không cần launcher riêng cho từng app.
-2. Bấm **một** file trong `launchers/`:
-   * [`Auto_Submit_Antigravity.bat`](launchers/Auto_Submit_Antigravity.bat) — hiện log, nên dùng lần đầu.
-   * [`Chay_Ngam_Auto_Submit.vbs`](launchers/Chay_Ngam_Auto_Submit.vbs) — chạy ẩn, không cửa sổ.
-3. Daemon tự bấm `Submit` trên Desktop, trên Antigravity IDE, trên extension trong VS Code và trên web UI Antigravity ở tab trình duyệt (tab đang mở qua UI Automation; mọi tab khi chạy Chrome bằng [`Chrome_Debug_9333.bat`](launchers/Chrome_Debug_9333.bat)). Chỉ chạy **một** daemon.
+1. Mở **Antigravity Desktop**, **Antigravity IDE**, **Visual Studio Code** hoặc web UI Antigravity trên **tab Chrome/Edge** như bình thường.
+2. Bấm đúp [`Antigravity_Auto_Submit.bat`](launchers/Antigravity_Auto_Submit.bat) rồi chọn:
+   * `1` full hiện log, hoặc `2` full ẩn — daemon + Chrome debug (mọi tab, không cướp chuột).
+   * `3` chỉ daemon (giữ Chrome hiện tại — chỉ tab đang mở).
+3. Daemon tự bấm `Submit` trên Desktop, trên Antigravity IDE, trên extension trong VS Code và trên web UI Antigravity ở tab trình duyệt. Bấm qua CDP chạy được trên tab ẩn/tab nền mà không cướp chuột của bạn. Chỉ chạy **một** daemon.
 
-Tắt: [`Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat).
+Tắt hết một lần: [`Stop_Auto_Submit.bat`](launchers/Stop_Auto_Submit.bat) (daemon + Chrome debug; Chrome thường giữ nguyên).
 
 Lệnh Python (tùy chọn):
 
@@ -182,10 +182,8 @@ antigravity-desktop-auto-submit/
 │   ├── antigravity_auto_submit_daemon.py   # Daemon: CDP Desktop + UIA IDE
 │   └── uia_permission_submit.py            # Bấm Submit trên Antigravity IDE, VS Code, tab trình duyệt
 └── launchers/
-    ├── Auto_Submit_Antigravity.bat         # Bật daemon (hiện log)
-    ├── Chay_Ngam_Auto_Submit.vbs           # Bật daemon ẩn
-    ├── Chrome_Debug_9333.bat               # Chrome kèm cổng CDP (mọi tab)
-    └── Stop_Auto_Submit.bat                # Tắt daemon
+    ├── Antigravity_Auto_Submit.bat         # Launcher duy nhất (menu)
+    └── Stop_Auto_Submit.bat                # Tắt hết một lần
 ```
 
 Một daemon phủ hết: Desktop qua CDP, Antigravity IDE, extension trong VS Code và tab trình duyệt qua UI Automation. Không khởi động lại app, không cổng 9222.
